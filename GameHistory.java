@@ -1,11 +1,17 @@
 public class GameHistory
 {
   private Move[][] history;
+  private Round[] roundHistory;
   private int currentRound = 0;
 
   public GameHistory(int numOfPlayers, int numRounds)
   {
     history = new Move[numOfPlayers][numRounds];
+    roundHistory = new Round[numRounds];
+  }
+  public int[][] getStats()
+  {
+    int[][] ans = 
   }
   public double probaliblityPlayerPlaysM(Move m,int player)
   {
@@ -29,6 +35,7 @@ public class GameHistory
     {
       history[i][currentRound] = r.getPlayerMove(i);
     }
+    roundHistory[currentRound] = r;
     currentRound++;
   }
 }

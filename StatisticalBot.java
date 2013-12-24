@@ -1,4 +1,5 @@
 import java.util.Random;
+import java.util.Arrays;
 
 public class StatisticalBot 
 {
@@ -31,7 +32,7 @@ public class StatisticalBot
           }
         }
     }
-    
+//    System.out.println(Arrays.toString(expectedMoveGain));    
     int bestMove = 0;
     double prevGain = 0;
     for(int i = 0; i < expectedMoveGain.length; i++)

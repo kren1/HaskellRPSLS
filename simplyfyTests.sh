@@ -6,11 +6,12 @@ DALW='java -ea DefeatAlwaysBotPlayer'
 REAC='java -ea ReactiveBotPlayer'
 STAT='java -ea StatisticalBotPlayer'
 
-while test $# -gt 0
-do
-  echo $1
-  shift
-done
+#while test $# -gt 0
+#do
+#  echo $1
+#  shift
+#done
+#javac *.java
+#$RUN "$DALW" "$REAC" "$STAT" "$RND" "$ALW \"C\""
 
-#$RUN "$RND" "$DALW"
-
+$RUN  "$REAC" "$STAT"
