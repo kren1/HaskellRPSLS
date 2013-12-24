@@ -1,10 +1,9 @@
-import java.util.Random;
-
-public class AlwaysBot {
+public class AlwaysBot 
+{
 
   private final Move initMove;
 
-  public AlwaysBot(s:String)
+  public AlwaysBot(String s)
   {
     initMove = Move.readMove(s);
   }

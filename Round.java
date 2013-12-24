@@ -71,4 +71,10 @@ public class Round
         return Arrays.equals(moveFrequncyHere , moveFrequncy);
 
     }
+    public static int value(Move m1 , Move m2)
+    {
+      if(m1 == m2) return 0;
+      else if(m1.beats(m2)) return 1;
+      else return -1;
+    }
 }
