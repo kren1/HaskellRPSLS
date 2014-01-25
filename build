@@ -1,4 +1,4 @@
 #!/bin/bash
-#ghc --make StrategicBot.hs
-javac *.java
+ghc --make StrategicBot.hs
+#avac *.java
 echo "done"
