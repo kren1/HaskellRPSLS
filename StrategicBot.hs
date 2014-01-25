@@ -47,16 +47,23 @@ playGame _ __ [] _
 -- Pre: List is non-empty
 react :: Double -> [[Shapes]] -> Shapes
 react d p@(r:rs) 
-  |d < 0.80   = snd (head ans) 
+  |d < 0.83   = snd (head ans) 
   |d < 0.9533 = snd (ans !! 1) 
   |d < 0.999  = snd (ans !! 2) 
   |otherwise  = snd (ans !! 3) 
   where
-  maxSc   = maximum score
+--  maxSc   = maximum score
   ans     = reverse ans'
-  ans'    = sortBy (compare `on` fst) (zip score allShapes)   
-  score   = zipWith (+) (map fromIntegral (scoreRounds p))
-            (map (*(2* fromIntegral nRounds)) (map eGain allShapes))
+  nPlayer = length r
+  nRounds = length p
+  ans'    = sortBy (compare `on` fst) (zip (react' p) allShapes)   
+
+react' :: [[Shapes]] -> [Double]
+react' p@(r:rs) 
+  = score
+  where
+  score   = map eGain allShapes
+--  score   = zipWith (+) (map fromIntegral (scoreRounds p)) (map (*(2* fromIntegral nRounds))(map eGain allShapes )) 
   stats   = getStats r rs (nPlayer)
   nPlayer = length r
   nRounds = length p

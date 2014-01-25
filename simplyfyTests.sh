@@ -17,5 +17,8 @@ HAS_STAT='./StrategicBot'
 #javac *.java
 #$RUN "$DALW" "$REAC" "$STAT" "$RND" "$ALW \"C\""
 #$RUN "$DALW" "$REAC" "$STAT" "$ALW \"C\"" "$HAS_STAT"
+#$RUN "$HAS_REAC" "$HAS_STAT"
+#$RUN  "$REAC" "$STAT" "$RND" "$DALW" "$HAS_REAC" "$HAS_STAT"
+#$RUN  "$REAC" "$STAT"  "$ALW \"C\"" "$ALW \"C\"" "$HAS_REAC" "$HAS_STAT" "$HAS_STAT" "$HAS_REAC" "$HAS_STAT"
+$RUN  "$ALW \"C\"" "$ALW \"#\"" "$HAS_STAT"
 
-$RUN  "$REAC" "$STAT" "$RND" "$DALW" "$HAS_REAC" "$HAS_STAT"
