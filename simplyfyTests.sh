@@ -6,6 +6,9 @@ DALW='java -ea DefeatAlwaysBotPlayer'
 REAC='java -ea ReactiveBotPlayer'
 STAT='java -ea StatisticalBotPlayer'
 
+HAS_REAC='./ReactiveBot'
+HAS_STAT='./StrategicBot'
+
 #while test $# -gt 0
 #do
 #  echo $1
@@ -13,5 +16,6 @@ STAT='java -ea StatisticalBotPlayer'
 #done
 #javac *.java
 #$RUN "$DALW" "$REAC" "$STAT" "$RND" "$ALW \"C\""
+#$RUN "$DALW" "$REAC" "$STAT" "$ALW \"C\"" "$HAS_STAT"
 
-$RUN  "$REAC" "$STAT"
+$RUN  "$REAC" "$STAT" "$RND" "$DALW" "$HAS_REAC" "$HAS_STAT"

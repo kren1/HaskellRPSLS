@@ -46,26 +46,34 @@ playGame _ __ [] _
 
 -- Pre: List is non-empty
 react :: Double -> [[Shapes]] -> Shapes
-react d (r:rs) 
-  |d < 0.7   = snd (head ans) 
-  |d < 0.9333  = snd (ans !! 1) 
-  |d < 0.999 = snd (ans !! 2) 
-  |otherwise = snd (ans !! 3) 
+react d p@(r:rs) 
+  |d < 0.80   = snd (head ans) 
+  |d < 0.9533 = snd (ans !! 1) 
+  |d < 0.999  = snd (ans !! 2) 
+  |otherwise  = snd (ans !! 3) 
   where
   maxSc   = maximum score
   ans     = reverse ans'
   ans'    = sortBy (compare `on` fst) (zip score allShapes)   
-  score   = map eGain allShapes
-  nPlayer = length r 
-  cRound  = length (r:rs) 
+  score   = zipWith (+) (map fromIntegral (scoreRounds p))
+            (map (*(2* fromIntegral nRounds)) (map eGain allShapes))
   stats   = getStats r rs (nPlayer)
+  nPlayer = length r
+  nRounds = length p
   eGain :: Shapes -> Double
-  eGain m1= sum [(prob stats p m2 cRound)*
+  eGain m1= sum [(prob stats p m2 nRounds)*
                  (fromIntegral(beats m1 (toEnum (m2-1)))) 
-                | p <- [1..nPlayer],
+                 | p <- [1..nPlayer],
                  m2 <- [1..5]]
 
-
+--Pre: list is non-empty
+scoreRounds :: [[Shapes]] -> [Int]
+scoreRounds p@(r:rs)
+  = foldl (zipWith (+)) [0,0..] (map (map (score r)) p)
+  where
+  score :: [Shapes] -> Shapes -> Int
+  score shapes s
+    = sum (map (beats s) shapes)
 
 prob :: Array (Int,Int) Int -> Int -> Int -> Int -> Double
 prob stats player move rounds

@@ -43,7 +43,8 @@ public class Round
 
     public boolean similar(Round otherRound)
     {
-        if(numOfPlayers != otherRound.getNumberOfPlayers()) return false;
+        assert (numOfPlayers == otherRound.getNumberOfPlayers()):
+        "diferent number of players";
 
         int[] moveFrequncyHere = new int[5];
         int[] moveFrequncy= new int[5];
@@ -58,7 +59,7 @@ public class Round
                 case LIZARD: moveFrequncyHere[3]++;
                 case SPOCK: moveFrequncyHere[4]++;
             }  
-            switch(this.getPlayerMove(i))
+            switch(otherRound.getPlayerMove(i))
             {
                 case ROCK: moveFrequncy[0]++;
                 case PAPER: moveFrequncy[1]++;
@@ -73,8 +74,8 @@ public class Round
     }
     public static int value(Move m1 , Move m2)
     {
-      if(m1 == m2) return 0;
-      else if(m1.beats(m2)) return 1;
+      if(m1.beats(m2)) return 1;
+      else if(m1 == m2) return 0;
       else return -1;
     }
 }

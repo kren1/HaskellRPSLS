@@ -80,7 +80,8 @@ number_of_rounds[1].to_i.times do | i |
 
   round_moves = bots.map do |bot|
     begin
-      move = bot[:std_out].gets.match(/([^\r\n]*)/)[1]
+      text = bot[:std_out].gets
+      move = text.match(/([^\r\n]*)/)[1]
       abort("Your bot (#{bot[:name]} played an invalid move \"#{move}\"\n\nThe game cannot continue!") unless moves.include? move
     rescue
       report_crash bot
