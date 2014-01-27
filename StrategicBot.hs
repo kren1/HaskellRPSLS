@@ -13,6 +13,17 @@ data Shapes = Rock | Paper | Scissors | Lizard | Spock
      deriving (Eq,Ord, Enum, Bounded)
 
 
+-- (golombsID of the round, list of Shapes palyed by the players)
+-- head of Round is this plazyer!!!!!!!!!
+type Round = (Int,[Shapes])
+type MoveCount = (Double,Double,Double,Double,Double)
+type PlayerProb = [MoveCount]
+type GameStatus = ([Int],[Int])
+type PlayerHistory = [[Shapes]]
+type BestMove      = (Shapes,Shapes)
+
+--type MoveCount = (Int,Int,Int,Int,Int)
+
 main = do
        gen <- getStdGen
        numPlayer' <- getLine
@@ -27,7 +38,7 @@ main = do
        --mapM_ (playRound numPlayers )(take numRounds roundomMoves)
         
 
-playGame :: Int -> [Double] -> [Shapes] -> [[Shapes]] -> IO ()
+playGame :: Int -> [Double] -> [Shapes] -> [Round] -> IO ()
 --playGame n (rnd:rnds) rounds 
 --First move
 playGame n (d:ds)(rnd:rnds) [] 
@@ -36,7 +47,7 @@ playGame n (d:ds)(rnd:rnds) []
     playGame n ds rnds (round:[])
 playGame n (d:ds) (rnd:rnds) rounds 
   = do
-    let nextMove = react d rounds
+    let nextMove = react d rnd rounds
     round <- playRound n nextMove 
     playGame n ds rnds (round:rounds)
 playGame _ __ [] _
@@ -45,74 +56,150 @@ playGame _ __ [] _
 
 
 -- Pre: List is non-empty
-react :: Double -> [[Shapes]] -> Shapes
-react d p@(r:rs) 
-  |d < 0.83   = snd (head ans) 
-  |d < 0.9533 = snd (ans !! 1) 
-  |d < 0.999  = snd (ans !! 2) 
-  |otherwise  = snd (ans !! 3) 
+react :: Double -> Shapes -> [Round] -> Shapes
+react rnd rns rounds
+  = case relevant (head rounds) rounds of
+     []    -> rns
+     rel   -> smart rel
+    
+smart :: [Round] -> Shapes
+smart rs
+  = if ans == Nothing then head b else fromJust ans
   where
---  maxSc   = maximum score
-  ans     = reverse ans'
-  nPlayer = length r
-  nRounds = length p
-  ans'    = sortBy (compare `on` fst) (zip (react' p) allShapes)   
+    stats     = playerProbs (playerMoveHistory rs) 
+    bestMoves = best2Moves4Player stats
+    (raw,win) = gameScore rs
+    others    = drop 1 (zip win bestMoves)
+    important = take 2 (sortBy ((flip compare) `on` fst) others)
+    b:b':bs   = map (pairToList.snd) important
+    ans       = getDuplicate b b'
 
-react' :: [[Shapes]] -> [Double]
-react' p@(r:rs) 
-  = score
+
+pairToList :: (a,a) -> [a]
+pairToList (x,x') = x:x':[]
+
+best2Moves4Player :: PlayerProb -> [BestMove]
+best2Moves4Player  
+  = map prob2BestMove
+
+prob2BestMove :: MoveCount -> BestMove
+prob2BestMove (r,p,s,l,sp)
+  = if duplicate == Nothing then (b,b1) else (m, head (delete m pb))
   where
-  score   = map eGain allShapes
---  score   = zipWith (+) (map fromIntegral (scoreRounds p)) (map (*(2* fromIntegral nRounds))(map eGain allShapes )) 
-  stats   = getStats r rs (nPlayer)
-  nPlayer = length r
-  nRounds = length p
-  eGain :: Shapes -> Double
-  eGain m1= sum [(prob stats p m2 nRounds)*
-                 (fromIntegral(beats m1 (toEnum (m2-1)))) 
-                 | p <- [1..nPlayer],
-                 m2 <- [1..5]]
+    ls              = zip [r,p,s,l,sp] allShapes
+    (_,w):(_,w'):os = sortBy ((flip compare) `on` fst) ls
+    pb@(b:b':[])    = shapeThatBeats w
+    p'@(b1:b1':[])  = shapeThatBeats w'
+    duplicate       = getDuplicate pb p' 
+    m               = fromJust duplicate
 
---Pre: list is non-empty
-scoreRounds :: [[Shapes]] -> [Int]
-scoreRounds p@(r:rs)
-  = foldl (zipWith (+)) [0,0..] (map (map (score r)) p)
+
+getDuplicate :: Eq a => [a] -> [a] -> Maybe a
+getDuplicate pb p'
+  = case intersect pb p' of
+    [] -> Nothing 
+    (x:xs) -> Just x
+
+shapeThatBeats :: Shapes ->[Shapes]
+shapeThatBeats Rock      = [Spock,Paper]
+shapeThatBeats Paper     = [Lizard,Scissors]
+shapeThatBeats Scissors  = [Rock,Spock]
+shapeThatBeats Lizard    = [Rock,Scissors]
+shapeThatBeats Spock     = [Lizard,Paper]
+
+
+gameScore :: [Round] -> GameStatus
+gameScore s
+  =  (pureScore, winScore)
   where
-  score :: [Shapes] -> Shapes -> Int
-  score shapes s
-    = sum (map (beats s) shapes)
+    pureScore  = (map sum) (transpose individual)
+    winScore   = (map sum) (transpose (map playerPosition individual))
+    individual = map (roundScore.snd) s
 
-prob :: Array (Int,Int) Int -> Int -> Int -> Int -> Double
-prob stats player move rounds
-  = (fromIntegral(stats! (player,move))) / (fromIntegral rounds)
-
-
-getStats :: [Shapes] -> [[Shapes]] -> Int
-             -> Array (Int,Int) Int
-getStats lr rs numPlayers
-  = getStats' lr rs (array ((1,1),(numPlayers,5))[((i,j),0) 
-                    | i <- [1..numPlayers],j <- [1..5]])
-
-getStats' :: [Shapes] -> [[Shapes]] 
-             -> Array (Int,Int) Int
-             -> Array (Int,Int) Int
-getStats' lr (r1:r:rs) stats
-  |similar lr r = getStats' lr (r:rs) stats' 
-  |otherwise    = getStats' lr (r:rs) stats
+playerPosition :: [Int] -> [Int]
+playerPosition raw
+  = fst (unzip (sortBy (compare `on` snd) ((5,i):(2,i'):t)))
   where
-    stats' = stats//
-             [(pos i,(stats ! (pos i)) + 1 )
-             |i <- [1..p]]
-    (p,m)  = snd (bounds stats)
-    pos:: Int -> (Int, Int)
-    pos i'  = (i' , fromEnum (r!!(i'-1)) + 1 )
-getStats' _ _ stats 
-  = stats
+    (_,i):(_,i'):s = sortBy ((flip compare) `on` fst) (zip raw [0..])
+    t = map (\(_,p) -> (0,p)) s
+
+playerProbs :: PlayerHistory -> PlayerProb
+playerProbs rs 
+  = map ((divide (fromIntegral (length rs) - 0)).(count nullM)) rs
+
+--Pre: there is atleast one elemnt in the list
+relevant :: Round -> [Round] -> [Round]
+relevant r' (r2:r:rs)
+  |fst r' == fst r = r2:relevant r' (r:rs)
+  |otherwise       = relevant r' (r:rs)
+relevant _ (r:rs)
+  = []
+
+playerMoveHistory :: [Round] -> PlayerHistory
+playerMoveHistory 
+  = transpose.map snd
+
+count :: MoveCount -> [Shapes]  -> MoveCount
+count c (Rock:s)     = count (rockPlus c) s
+count c (Paper:s)    = count (paperPlus c) s
+count c (Scissors:s) = count (scissorsPlus c) s
+count c (Lizard:s)   = count (lizardPlus c) s
+count c (Spock:s)    = count (spockPlus c) s
+count c []           = c
+
+divide :: Double -> MoveCount -> MoveCount
+divide d (r,p,s,l,s') = (r/d,p/d,s/d,l/d,s'/d) 
+
+allShapes = [Rock,Paper,Scissors,Lizard,Spock]
+
+--Pre ; item is in the list
+lookUp :: Eq a => a -> [(a,b)] -> b
+lookUp = (fromJust . ).lookup
 
 
-similar :: [Shapes] -> [Shapes] -> Bool
-similar s s'
-  = sort s == sort s'
+playRound :: Int -> Shapes -> IO Round
+playRound numPlayers s = do
+              print s  
+              ms <- mapM readMove [1..(numPlayers - 1)]
+              return (hash(s:ms),ms)
+
+readMove :: Int -> IO Shapes
+readMove _ = do
+             move <- getLine
+             if move == [] then readMove 0 
+             else 
+               case move of
+               --[]        -> return Spock
+               ['@']     -> return Rock
+               ['#']     -> return Paper
+               ['8','<'] -> return Scissors
+               ['C']     -> return Lizard
+               ['V']     -> return Spock
+            --   _         -> return Spock
+               
+hash :: [Shapes] -> Int
+hash 
+  = foldl (flip$(+).golombId) 0
+
+golombId :: Shapes -> Int
+golombId Rock     = 1
+golombId Paper    = 2
+golombId Scissors = 5
+golombId Lizard   = 10
+golombId Spock    = 12
+
+instance Random Shapes where
+   random g = case randomR (fromEnum (minBound :: Shapes), fromEnum (maxBound :: Shapes)) g of
+                    (r, g') -> (toEnum r, g')
+   randomR (a,b) g = case randomR (fromEnum a, fromEnum b) g of
+                    (r, g') -> (toEnum r, g')
+
+instance Show Shapes where
+  show Rock      = "@"
+  show Paper     = "#"
+  show Scissors  = "8<"
+  show Lizard    = "C"
+  show Spock     = "V"
 
 beats :: Shapes -> Shapes -> Int
 beats s s'
@@ -138,42 +225,35 @@ beats Spock s
   |s == Scissors = 1
   |otherwise     = -1
 
-allShapes = [Rock,Paper,Scissors,Lizard,Spock]
+roundScore :: [Shapes] -> [Int]
+roundScore s
+  = map ((flip shapeScore) c) s
+  where
+    c = count nullM s
 
---Pre ; item is in the list
-lookUp :: Eq a => a -> [(a,b)] -> b
-lookUp = (fromJust . ).lookup
+shapeScore :: Shapes -> MoveCount -> Int
+shapeScore Rock c = round (lizard c + scissors c - spock c - paper c)
+shapeScore Paper c = round (spock c + rock c - scissors c - lizard c)
+shapeScore Scissors c = round (lizard c + paper c - spock c - rock c)
+shapeScore Lizard c = round (spock c + paper c - rock c - scissors c)
+shapeScore Spock c = round (rock c + scissors c - lizard c - paper c)
 
+paper (_,p,_,_,_)    = p
+rock (r,_,_,_,_)     = r
+scissors (_,_,s,_,_) = s
+lizard (_,_,_,l,_)   = l
+spock (_,_,_,_,s)    = s
 
-playRound :: Int -> Shapes -> IO [Shapes]
-playRound numPlayers s = do
-              print s  
-              mapM readMove [1..(numPlayers - 1)]
+rockPlus (r,p,s,l,s')     = (r+1,p,s,l,s') 
+paperPlus (r,p,s,l,s')    = (r,p+1,s,l,s') 
+scissorsPlus (r,p,s,l,s') = (r,p,s+1,l,s') 
+lizardPlus (r,p,s,l,s')   = (r,p,s,l+1,s') 
+spockPlus (r,p,s,l,s')    = (r,p,s,l,s'+1) 
 
-readMove :: Int -> IO Shapes
-readMove _ = do
-             move <- getLine
-             if move == [] then readMove 0 
-             else 
-               case move of
-               --[]        -> return Spock
-               ['@']     -> return Rock
-               ['#']     -> return Paper
-               ['8','<'] -> return Scissors
-               ['C']     -> return Lizard
-               ['V']     -> return Spock
-            --   _         -> return Spock
-               
+nullM = (0,0,0,0,0)
 
-instance Random Shapes where
-   random g = case randomR (fromEnum (minBound :: Shapes), fromEnum (maxBound :: Shapes)) g of
-                    (r, g') -> (toEnum r, g')
-   randomR (a,b) g = case randomR (fromEnum a, fromEnum b) g of
-                    (r, g') -> (toEnum r, g')
+io1 = [[Rock,Paper,Spock,Paper],[Spock,Lizard,Paper,Spock],
+        [Paper,Paper,Rock,Spock],[Rock,Paper,Spock,Paper],
+        [Spock,Lizard,Paper,Spock],[Paper,Paper,Rock,Spock]]
 
-instance Show Shapes where
-  show Rock      = "@"
-  show Paper     = "#"
-  show Scissors  = "8<"
-  show Lizard    = "C"
-  show Spock     = "V"
+round1 = zip (map hash io1) io1
