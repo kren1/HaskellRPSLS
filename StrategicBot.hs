@@ -64,16 +64,19 @@ react rnd rns rounds
     
 smart :: [Round] -> Shapes
 smart rs
-  = if ans == Nothing then head b else fromJust ans
+  = allShapes !! fromJust (elemIndex (maximum counted) counted)
   where
     stats     = playerProbs (playerMoveHistory rs) 
     bestMoves = best2Moves4Player stats
     (raw,win) = gameScore rs
-    others    = drop 1 (zip win bestMoves)
-    important = take 2 (sortBy ((flip compare) `on` fst) others)
-    b:b':bs   = map (pairToList.snd) important
-    ans       = getDuplicate b b'
-
+    others    = zip win bestMoves
+--    ordered   = sortBy ((flip compare) `on` fst) others
+    me        = fst (head others)
+    counted   = map (length.((flip elemIndices) goodMoves)) allShapes
+    goodMoves = concatMap f others
+    f (score,(a,b))
+      |score > me  = a:a:b:b:[] 
+      |otherwise   = pairToList (a,b)
 
 pairToList :: (a,a) -> [a]
 pairToList (x,x') = x:x':[]
