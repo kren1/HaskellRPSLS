@@ -59,12 +59,31 @@ playGame _ __ [] _
 react :: Double -> Shapes -> [Round] -> Shapes
 react rnd rns rounds
   = case relevant (head rounds) rounds of
-     []    -> rns
-     rel   -> smart rel
-    
-smart :: [Round] -> Shapes
+     []    -> allShapes !! (randomize rnd (smart rounds)) 
+     rel   -> allShapes !! (randomize rnd (smart rel))
+
+
+randomize :: Double -> [Int] -> Int
+randomize d is
+  = if (ans < 0 || ans > (length is) - 1) 
+    then  fromJust (elemIndex (maximum is) is)
+    else ans
+  where
+    proportions = map ((/fromIntegral (sum is)).fromIntegral) is
+    ans = walk 0 d
+    walk :: Int -> Double -> Int
+    walk i d'
+      | d' < 0.005   = i - 1
+      |val < 0.0001 = walk (i+1) d'
+      |otherwise    = walk (i+1) (d' - val)
+      where
+        val = proportions !! i
+
+--returns [Int] corespoding to allShapes that tell how manztimes it is good to plaz a shape    
+smart :: [Round] -> [Int]
 smart rs
-  = allShapes !! fromJust (elemIndex (maximum counted) counted)
+  = map (length.((flip elemIndices) goodMoves)) allShapes
+ -- = counted --allShapes !! fromJust (elemIndex (maximum counted) counted)
   where
     stats     = playerProbs (playerMoveHistory rs) 
     bestMoves = best2Moves4Player stats
@@ -72,7 +91,6 @@ smart rs
     others    = zip win bestMoves
 --    ordered   = sortBy ((flip compare) `on` fst) others
     me        = fst (head others)
-    counted   = map (length.((flip elemIndices) goodMoves)) allShapes
     goodMoves = concatMap f others
     f (score,(a,b))
       |score > me  = a:a:b:b:[] 
@@ -87,21 +105,22 @@ best2Moves4Player
 
 prob2BestMove :: MoveCount -> BestMove
 prob2BestMove (r,p,s,l,sp)
-  = if duplicate == Nothing then (b,b1) else (m, head (delete m pb))
+  = (getFirstDuplicate f, getFirstDuplicate f')
   where
-    ls              = zip [r,p,s,l,sp] allShapes
-    (_,w):(_,w'):os = sortBy ((flip compare) `on` fst) ls
-    pb@(b:b':[])    = shapeThatBeats w
+    ls      = zip [r,p,s,l,sp] allShapes
+    worstMs = snd (unzip (sortBy ((flip compare) `on` fst) ls))
+    [f,f']  = transpose (map shapeThatBeats worstMs)
+
+{-    pb@(b:b':[])    = shapeThatBeats w
     p'@(b1:b1':[])  = shapeThatBeats w'
     duplicate       = getDuplicate pb p' 
-    m               = fromJust duplicate
+    m               = fromJust duplicate -}
 
 
-getDuplicate :: Eq a => [a] -> [a] -> Maybe a
-getDuplicate pb p'
-  = case intersect pb p' of
-    [] -> Nothing 
-    (x:xs) -> Just x
+getFirstDuplicate :: Eq a => [a] -> a
+getFirstDuplicate (d:ds)
+  |find ( == d) ds == Nothing = getFirstDuplicate ds
+  |otherwise                  = d
 
 shapeThatBeats :: Shapes ->[Shapes]
 shapeThatBeats Rock      = [Spock,Paper]
@@ -128,7 +147,7 @@ playerPosition raw
 
 playerProbs :: PlayerHistory -> PlayerProb
 playerProbs rs 
-  = map ((divide (fromIntegral (length rs) - 0)).(count nullM)) rs
+  = map ((divide (fromIntegral (length (head rs)))).(count nullM)) rs
 
 --Pre: there is atleast one elemnt in the list
 relevant :: Round -> [Round] -> [Round]
